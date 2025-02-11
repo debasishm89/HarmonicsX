@@ -28,7 +28,7 @@ Hope you really enjoy using it! 🎶
 
 ## 🖥️ Demo
 
-🚀 [Find the live app here](#) (https://debasishm89.github.io/HarmonicsX/)
+🚀 [Find the live app here](https://debasishm89.github.io/HarmonicsX/) 
 
 ---
 
