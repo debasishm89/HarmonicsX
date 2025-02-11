@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmonica Frequency Detector and Recorder v 1.0</title>
+    <style>
+        /* --- General Styling --- */
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 28px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* --- Harmonica Layout --- */
+        .harmonica-container {
+            background: #f1f1f1;
+            border-radius: 12px;
+            padding: 15px;
+            display: inline-block;
+            box-shadow: 0px 4px 8px rgba(0,0,0,0.5);
+            margin-top: 15px;
+        }
+
+        .harmonica {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .hole {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            background: #444;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: inset 2px 2px 4px rgba(255, 255, 255, 0.2);
+            transition: transform 0.2s;
+        }
+
+        .highlight { background: #ffd700; color: black; transform: scale(1.1); }
+        .draw-highlight { background: #1e90ff; color: white; transform: scale(1.1); }
+
+        /* --- Buttons Styling --- */
+        button {
+            background: #ff9800;
+            border: none;
+            padding: 12px 18px;
+            margin: 10px;
+            border-radius: 6px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #e68900;
+        }
+
+        /* --- Notes Display Area --- */
+        textarea {
+            width: 90%;
+            height: 100px;
+            margin-top: 10px;
+            font-size: 16px;
+            border-radius: 6px;
+            padding: 8px;
+        }
+
+        /* --- Footer Styling --- */
+        .footer {
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .footer a {
+            color: #ffd700;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎶 Harmonica Frequency Detector 🎶</h1>
+
+    <!-- Buttons -->
+    <button onclick="startHarmonicaDetection()">Start Detection</button>
+    <button id="recordButton" onclick="toggleRecording()">Start Recording</button>
+    <button onclick="clearNotes()">Clear Notes</button>
+
+    <p id="output">Detected Note: </p>
+
+    <!-- Harmonica Layout -->
+    <div class="harmonica-container">
+        <div class="harmonica" id="harmonica"></div>
+    </div>
+
+    <!-- Recorded Notes -->
+    <h3>Recorded Notes:</h3>
+    <textarea id="recordedNotes" readonly></textarea>
+
+    <!-- Footer -->
+    <div class="footer">
+        Developed by <b>Debasish Mandal</b> |
+        <a href="https://instagram.com/debasish.hck" target="_blank">Instagram</a> |
+        <a href="https://www.youtube.com/@DebasishMandal" target="_blank">YouTube</a>
+    </div>
+
+    <script>
+        // 🎼 Define Harmonica Notes
+        const harmonicaTabs = [
+            { hole: 1, blow: 261.63, draw: 293.66 },
+            { hole: 2, blow: 329.63, draw: 349.23 },
+            { hole: 3, blow: 392.00, draw: 440.00 },
+            { hole: 4, blow: 523.25, draw: 493.88 },
+            { hole: 5, blow: 659.25, draw: 587.33 },
+            { hole: 6, blow: 783.99, draw: 698.46 },
+            { hole: 7, blow: 1046.50, draw: 880.00 },
+            { hole: 8, blow: 1318.51, draw: 987.77 },
+            { hole: 9, blow: 1567.98, draw: 1174.66 },
+            { hole: 10, blow: 2093.00, draw: 1396.91 }
+        ];
+
+        // 🎯 Ignore These Holes (Modify as Needed)
+        const ignoreHoles = [1, 10];
+
+        let isRecording = false;
+        let recordedSequence = [];
+        let lastRecordedTime = 0;
+        const minTimeGap = 300; // 300ms to allow repeated notes
+
+        // 🔹 Generate Harmonica UI
+        document.getElementById('harmonica').innerHTML = harmonicaTabs.map(tab => 
+            `<div class='hole' id='hole-${tab.hole}'>${tab.hole}</div>`
+        ).join('');
+
+        async function startHarmonicaDetection() {
+            // 🎤 Access Microphone
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioContext.createMediaStreamSource(stream);
+            const analyser = audioContext.createAnalyser();
+            analyser.fftSize = 2048;
+            source.connect(analyser);
+            const buffer = new Float32Array(analyser.fftSize);
+            function findHarmonicaTab(frequency) {
+                if (frequency < 100 || frequency > 3000) return null; // Ignore frequencies outside harmonica range
+
+                let closestMatch = null;
+                let smallestDiff = Infinity;
+                harmonicaTabs.forEach(tab => {
+                    ["blow", "draw"].forEach(type => {
+                        let diff = Math.abs(tab[type] - frequency);
+                        if (diff < smallestDiff) {
+                            smallestDiff = diff;
+                            closestMatch = { hole: tab.hole, type, note: tab[type] };
+                        }
+                    });
+                });
+                return closestMatch;
+            }
+            function autoCorrelate(buffer, sampleRate) {
+                let SIZE = buffer.length;
+                let MAX_SAMPLES = Math.floor(SIZE / 2);
+                let bestOffset = -1;
+                let bestCorrelation = 0;
+                let rms = 0;
+                let foundGoodCorrelation = false;
+                let correlations = new Array(MAX_SAMPLES);
+
+                // Compute Root Mean Square (RMS) to filter out background noise
+                for (let i = 0; i < SIZE; i++) {
+                    let val = buffer[i];
+                    rms += val * val;
+                }
+                rms = Math.sqrt(rms / SIZE);
+                if (rms < 0.01) return -1; // Background noise, ignore
+
+                let lastCorrelation = 1;
+                for (let offset = 0; offset < MAX_SAMPLES; offset++) {
+                    let correlation = 0;
+                    for (let i = 0; i < MAX_SAMPLES; i++) {
+                        correlation += Math.abs(buffer[i] - buffer[i + offset]);
+                    }
+                    correlation = 1 - (correlation / MAX_SAMPLES);
+                    correlations[offset] = correlation;
+
+                    if (correlation > 0.9 && correlation > lastCorrelation) {
+                        foundGoodCorrelation = true;
+                        if (correlation > bestCorrelation) {
+                            bestCorrelation = correlation;
+                            bestOffset = offset;
+                        }
+                    } else if (foundGoodCorrelation) {
+                        let shift = (correlations[bestOffset + 1] - correlations[bestOffset - 1]) / correlations[bestOffset];
+                        return sampleRate / (bestOffset + (8 * shift));
+                    }
+                    lastCorrelation = correlation;
+                }
+                return -1; // No good correlation found
+            }
+            function detectPitch() {
+                analyser.getFloatTimeDomainData(buffer);
+                let frequency = autoCorrelate(buffer, audioContext.sampleRate);
+
+                if (frequency > 0) {
+                    const tab = findHarmonicaTab(frequency);
+                    if (tab && !ignoreHoles.includes(tab.hole)) {
+                        let note = `${tab.type === "blow" ? "+" : "-"}${tab.hole}`;
+                        document.getElementById('output').textContent = `Detected: ${note} (${frequency.toFixed(2)} Hz)`;
+
+                        document.querySelectorAll('.hole').forEach(h => h.classList.remove('highlight', 'draw-highlight'));
+                        document.getElementById(`hole-${tab.hole}`).classList.add(tab.type === "blow" ? 'highlight' : 'draw-highlight');
+
+                        if (isRecording) recordNote(note);
+                    }
+                }
+                requestAnimationFrame(detectPitch);
+            }
+            detectPitch();
+        }
+
+        function toggleRecording() {
+            isRecording = !isRecording;
+            document.getElementById('recordButton').textContent = isRecording ? "Stop Recording" : "Start Recording";
+
+            if (!isRecording) {
+                localStorage.setItem("harmonica_notes", JSON.stringify(recordedSequence));
+                alert("Recording stopped and saved.");
+            } else {
+                recordedSequence = [];
+                document.getElementById('recordedNotes').value = "";
+                localStorage.removeItem("harmonica_notes");
+                alert("Recording started...");
+            }
+        }
+
+        function recordNote(note) {
+            let currentTime = new Date().getTime();
+            if (currentTime - lastRecordedTime > minTimeGap) {
+                recordedSequence.push(note);
+                document.getElementById('recordedNotes').value = recordedSequence.join(" ");
+                lastRecordedTime = currentTime;
+            }
+        }
+
+        function clearNotes() {
+            recordedSequence = [];
+            document.getElementById('recordedNotes').value = "";
+            localStorage.removeItem("harmonica_notes");
+        }
+    </script>
+</body>
+</html>
