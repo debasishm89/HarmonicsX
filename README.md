@@ -21,7 +21,7 @@ A real-time harmonica frequency detection and recording tool that helps musician
 
 ## 🖥️ Demo
 
-🚀 [Live Demo Here](#) (Replace with GitHub Pages or deployment link)
+🚀 [Live Demo Here](#) (https://debasishm89.github.io/HarmonicsX/)
 
 ---
 
@@ -29,8 +29,8 @@ A real-time harmonica frequency detection and recording tool that helps musician
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/sound-experiments.git
-   cd sound-experiments
+   git clone https://github.com/debasishm89/HarmonicsX.git
+   cd HarmonicsX
    ```
 2. Open `index.html` in your browser.
 
@@ -62,8 +62,8 @@ A real-time harmonica frequency detection and recording tool that helps musician
 
 ## 👨‍💻 Author
 
-**Developed by** [Debasish Mandal](https://www.instagram.com/your_instagram)\
-📺 YouTube: [Your Channel](https://www.youtube.com/your_channel)
+**Developed by** [Debasish Mandal](https://www.instagram.com/debasish.hck)\
+📺 YouTube: [Your Channel](https://www.youtube.com/@DebasishMandal)
 
 ---
 
