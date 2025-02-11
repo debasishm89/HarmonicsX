@@ -4,6 +4,13 @@
 
 A real-time harmonica frequency detection and recording tool that helps musicians visualize and capture harmonica notes as they play. This tool accurately detects harmonica sounds while filtering out background noise.
 
+
+When you are starting to learn any musical instrument, you face difficulty understanding (before your brain muscle memory records the tune) which note you are playing. You have to play and look at the instrument to find out which hole you are blowing and which chord you are playing. I also faced the same issue. Hence, I've built this app with the help of ChatGPT.
+
+This tool helps musicians, especially harmonica players, to detect and visualize the notes they are playing in real-time. It uses Web Audio API to capture sound, analyze frequency, and highlight corresponding harmonica holes.
+
+Hope you really enjoy using it! 🎶
+
 ---
 
 ## ✨ Features
@@ -21,7 +28,7 @@ A real-time harmonica frequency detection and recording tool that helps musician
 
 ## 🖥️ Demo
 
-🚀 [Live Demo Here](#) (https://debasishm89.github.io/HarmonicsX/)
+🚀 [Find the live app here](#) (https://debasishm89.github.io/HarmonicsX/)
 
 ---
 
@@ -63,7 +70,7 @@ A real-time harmonica frequency detection and recording tool that helps musician
 ## 👨‍💻 Author
 
 **Developed by** [Debasish Mandal](https://www.instagram.com/debasish.hck)\
-📺 YouTube: [Your Channel](https://www.youtube.com/@DebasishMandal)
+📺 YouTube: [YT Channel](https://www.youtube.com/@DebasishMandal)
 
 ---
 
