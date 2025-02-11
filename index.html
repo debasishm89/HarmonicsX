@@ -147,7 +147,6 @@
         ).join('');
 
         async function startHarmonicaDetection() {
-            // 🎤 Access Microphone
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const source = audioContext.createMediaStreamSource(stream);
@@ -155,6 +154,33 @@
             analyser.fftSize = 2048;
             source.connect(analyser);
             const buffer = new Float32Array(analyser.fftSize);
+
+            function autoCorrelate(buf, sampleRate) {
+                let SIZE = buf.length;
+                let rms = 0;
+                for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+                rms = Math.sqrt(rms / SIZE);
+
+                if (rms < 0.02) return -1; // Ignore very soft sounds (background noise)
+
+                let r1 = 0, r2 = SIZE - 1, threshold = 0.2;
+                for (let i = 0; i < SIZE / 2; i++) if (Math.abs(buf[i]) < threshold) { r1 = i; break; }
+                for (let i = 1; i < SIZE / 2; i++) if (Math.abs(buf[SIZE - i]) < threshold) { r2 = SIZE - i; break; }
+
+                buf = buf.slice(r1, r2);
+                SIZE = buf.length;
+                let c = new Array(SIZE).fill(0);
+                for (let i = 0; i < SIZE; i++) for (let j = 0; j < SIZE - i; j++) c[i] += buf[j] * buf[j + i];
+
+                let d = 0;
+                while (c[d] > c[d + 1]) d++;
+                let maxval = -1, maxpos = -1;
+                for (let i = d; i < SIZE; i++) if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+
+                let T0 = maxpos;
+                return sampleRate / T0;
+            }
+
             function findHarmonicaTab(frequency) {
                 if (frequency < 100 || frequency > 3000) return null; // Ignore frequencies outside harmonica range
 
@@ -171,46 +197,7 @@
                 });
                 return closestMatch;
             }
-            function autoCorrelate(buffer, sampleRate) {
-                let SIZE = buffer.length;
-                let MAX_SAMPLES = Math.floor(SIZE / 2);
-                let bestOffset = -1;
-                let bestCorrelation = 0;
-                let rms = 0;
-                let foundGoodCorrelation = false;
-                let correlations = new Array(MAX_SAMPLES);
 
-                // Compute Root Mean Square (RMS) to filter out background noise
-                for (let i = 0; i < SIZE; i++) {
-                    let val = buffer[i];
-                    rms += val * val;
-                }
-                rms = Math.sqrt(rms / SIZE);
-                if (rms < 0.01) return -1; // Background noise, ignore
-
-                let lastCorrelation = 1;
-                for (let offset = 0; offset < MAX_SAMPLES; offset++) {
-                    let correlation = 0;
-                    for (let i = 0; i < MAX_SAMPLES; i++) {
-                        correlation += Math.abs(buffer[i] - buffer[i + offset]);
-                    }
-                    correlation = 1 - (correlation / MAX_SAMPLES);
-                    correlations[offset] = correlation;
-
-                    if (correlation > 0.9 && correlation > lastCorrelation) {
-                        foundGoodCorrelation = true;
-                        if (correlation > bestCorrelation) {
-                            bestCorrelation = correlation;
-                            bestOffset = offset;
-                        }
-                    } else if (foundGoodCorrelation) {
-                        let shift = (correlations[bestOffset + 1] - correlations[bestOffset - 1]) / correlations[bestOffset];
-                        return sampleRate / (bestOffset + (8 * shift));
-                    }
-                    lastCorrelation = correlation;
-                }
-                return -1; // No good correlation found
-            }
             function detectPitch() {
                 analyser.getFloatTimeDomainData(buffer);
                 let frequency = autoCorrelate(buffer, audioContext.sampleRate);
@@ -220,18 +207,21 @@
                     if (tab && !ignoreHoles.includes(tab.hole)) {
                         let note = `${tab.type === "blow" ? "+" : "-"}${tab.hole}`;
                         document.getElementById('output').textContent = `Detected: ${note} (${frequency.toFixed(2)} Hz)`;
-
                         document.querySelectorAll('.hole').forEach(h => h.classList.remove('highlight', 'draw-highlight'));
-                        document.getElementById(`hole-${tab.hole}`).classList.add(tab.type === "blow" ? 'highlight' : 'draw-highlight');
 
-                        if (isRecording) recordNote(note);
+                        const holeElement = document.getElementById(`hole-${tab.hole}`);
+                        holeElement.classList.add(tab.type === "blow" ? 'highlight' : 'draw-highlight');
+
+                        if (isRecording) {
+                            recordNote(note);
+                        }
                     }
                 }
                 requestAnimationFrame(detectPitch);
             }
             detectPitch();
         }
-
+        
         function toggleRecording() {
             isRecording = !isRecording;
             document.getElementById('recordButton').textContent = isRecording ? "Stop Recording" : "Start Recording";
