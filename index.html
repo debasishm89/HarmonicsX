@@ -113,7 +113,7 @@
     <h3>Recorded Notes:</h3>
     <textarea id="recordedNotes" readonly></textarea>
 
-    <textarea id="playNotes" placeholder="Enter tabs here. e.g. +5 +5 -5 +5"></textarea>
+    <textarea id="playNotes" placeholder="Enter tabs here. e.g. +5 +5 -5 +5 ; +5 +5 -5 +5 +6 -5 ; "></textarea>
 
     <!-- Footer -->
     <div class="footer">
@@ -331,7 +331,7 @@
                 vibrato.stop();
             }, duration * 1000);
         }
-
+        /*
         function playTabs() {
             const input = document.getElementById("playNotes").value.trim().split(/\s+/);
             let delay = 0;
@@ -347,6 +347,30 @@
                 delay++;
             });
         }
+        */
+       /* Pause at Semicolon*/
+        function playTabs() {
+            const input = document.getElementById("playNotes").value.trim().split(/\s+/);
+            let delay = 0;
+            
+            input.forEach(tab => {
+                if (tab === ";") {
+                    // Pause by increasing the delay without playing a note
+                    delay += 1; 
+                } else {
+                    setTimeout(() => {
+                        let hole = Math.abs(parseInt(tab)) - 1; // Adjust index (0-based)
+                        let isDraw = tab.startsWith("-");
+                        if (harmonicaTabs[hole]) {
+                            let frequency = isDraw ? harmonicaTabs[hole].draw : harmonicaTabs[hole].blow;
+                            playSound(frequency, 0.6); // Slightly longer duration for harmonica effect
+                        }
+                    }, delay * 600);
+                    delay++;
+                }
+            });
+        }
+
 
         function stopHarmonicaDetection() {
             if (window.audioContext) {
