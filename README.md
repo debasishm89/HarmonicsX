@@ -1,6 +1,6 @@
 # 🎵 Sound Experiments
 
-## 🎤 Harmonica Frequency Detector & Recorder
+## 🎤 Harmonica Frequency Detector,Recorder & Player
 
 A real-time harmonica frequency detection and recording tool that helps musicians visualize and capture harmonica notes as they play. This tool accurately detects harmonica sounds while filtering out background noise.
 
