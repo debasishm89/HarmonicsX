@@ -97,8 +97,10 @@
 
     <!-- Buttons -->
     <button onclick="startHarmonicaDetection()">Start Detection</button>
+    <button onclick="stopHarmonicaDetection()">Stop Detection</button>
     <button id="recordButton" onclick="toggleRecording()">Start Recording</button>
     <button onclick="clearNotes()">Clear Notes</button>
+    <button onclick="playTabs()">Play Tabs</button>
 
     <p id="output">Detected Note: </p>
 
@@ -110,6 +112,8 @@
     <!-- Recorded Notes -->
     <h3>Recorded Notes:</h3>
     <textarea id="recordedNotes" readonly></textarea>
+
+    <textarea id="playNotes" placeholder="Enter tabs here. e.g. +5 +5 -5 +5"></textarea>
 
     <!-- Footer -->
     <div class="footer">
@@ -251,6 +255,115 @@
             document.getElementById('recordedNotes').value = "";
             localStorage.removeItem("harmonica_notes");
         }
+        /*
+        function playSound(frequency, duration = 0.5) {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'sawtooth';
+            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            setTimeout(() => { oscillator.stop(); }, duration * 1000);
+        }
+
+        function playTabs() {
+            const input = document.getElementById("playNotes").value.trim().split(/\s+/);
+            let delay = 0;
+            input.forEach(tab => {
+                setTimeout(() => {
+                    let hole = Math.abs(parseInt(tab));
+                    let isDraw = tab.startsWith("-");
+                    if (harmonicaTabs[hole]) {
+                        let frequency = isDraw ? harmonicaTabs[hole].draw : harmonicaTabs[hole].blow;
+                        playSound(frequency);
+                    }
+                }, delay * 600);
+                delay++;
+            });
+        }
+        */
+        function playSound(frequency, duration = 0.5) {
+            if (!window.audioContext) {
+                window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            const audioCtx = window.audioContext;
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+            const vibrato = audioCtx.createOscillator();
+            const vibratoGain = audioCtx.createGain();
+
+            // Use a sawtooth wave for a more natural harmonica sound
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.value = frequency;
+
+            // Apply a low-pass filter to soften harsh tones
+            filter.type = "lowpass";
+            filter.frequency.value = 1200; // Fine-tune this for best results
+
+            // Add vibrato for a realistic harmonica effect
+            vibrato.frequency.value = 6; // Speed of vibrato
+            vibratoGain.gain.value = 5; // Depth of vibrato
+            vibrato.connect(vibratoGain);
+            vibratoGain.connect(oscillator.frequency);
+            vibrato.start();
+
+            // Smooth attack and release for a more natural sound
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.8, audioCtx.currentTime + 0.1); // Attack
+            gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + duration); // Release
+
+            // Connect nodes
+            oscillator.connect(filter);
+            filter.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            // Start playing
+            oscillator.start();
+            
+            // Stop sound after the duration
+            setTimeout(() => {
+                oscillator.stop();
+                vibrato.stop();
+            }, duration * 1000);
+        }
+
+        function playTabs() {
+            const input = document.getElementById("playNotes").value.trim().split(/\s+/);
+            let delay = 0;
+            input.forEach(tab => {
+                setTimeout(() => {
+                    let hole = Math.abs(parseInt(tab)) - 1; // Adjust index (0-based)
+                    let isDraw = tab.startsWith("-");
+                    if (harmonicaTabs[hole]) {
+                        let frequency = isDraw ? harmonicaTabs[hole].draw : harmonicaTabs[hole].blow;
+                        playSound(frequency, 0.6); // Slightly longer duration for harmonica effect
+                    }
+                }, delay * 600);
+                delay++;
+            });
+        }
+
+        function stopHarmonicaDetection() {
+            if (window.audioContext) {
+                window.audioContext.close().then(() => {
+                    console.log("Harmonica detection stopped.");
+                }).catch(err => {
+                    console.error("Error stopping audio context:", err);
+                });
+                window.audioContext = null;
+            }
+            
+            if (window.mediaStream) {
+                window.mediaStream.getTracks().forEach(track => track.stop());
+                window.mediaStream = null;
+            }
+        }
+
     </script>
 </body>
 </html>
