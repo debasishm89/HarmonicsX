@@ -99,7 +99,6 @@
     <button onclick="startHarmonicaDetection()">Start Detection</button>
     <button id="recordButton" onclick="toggleRecording()">Start Recording</button>
     <button onclick="clearNotes()">Clear Notes</button>
-    <button onclick="playTabs()">Play Tabs</button>
 
     <p id="output">Detected Note: </p>
 
@@ -110,9 +109,7 @@
 
     <!-- Recorded Notes -->
     <h3>Recorded Notes:</h3>
-    <textarea id="recordedNotes"></textarea>
-
-    <!-- <textarea id="harmonicaTabs" placeholder="Enter tabs (e.g. -4 5 -6 3)"></textarea> -->
+    <textarea id="recordedNotes" readonly></textarea>
 
     <!-- Footer -->
     <div class="footer">
@@ -253,35 +250,6 @@
             recordedSequence = [];
             document.getElementById('recordedNotes').value = "";
             localStorage.removeItem("harmonica_notes");
-        }
-
-        function playSound(frequency, duration = 0.5) {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            oscillator.frequency.value = frequency;
-            oscillator.type = 'sawtooth';
-            gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.start();
-            setTimeout(() => { oscillator.stop(); }, duration * 1000);
-        }
-
-        function playTabs() {
-            const input = document.getElementById("recordedNotes").value.trim().split(/\s+/);
-            let delay = 0;
-            input.forEach(tab => {
-                setTimeout(() => {
-                    let hole = Math.abs(parseInt(tab));
-                    let isDraw = tab.startsWith("-");
-                    if (harmonicaTabs[hole]) {
-                        let frequency = isDraw ? harmonicaTabs[hole].draw : harmonicaTabs[hole].blow;
-                        playSound(frequency);
-                    }
-                }, delay * 600);
-                delay++;
-            });
         }
     </script>
 </body>
